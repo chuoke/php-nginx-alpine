@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+if [ ! -z "$PGID" ]; then
+    groupmod -o -g $PGID www-data
+    usermod -o -u $PUID -g www-data www-data
+fi
+
+if [ ! -z "$PGID" ]; then
+    groupmod -o -g $PGID nginx
+    usermod -o -u $PUID -g nginx nginx
+fi
+
+if [ ! -z "$COMPOSER_REPO_PACKAGIST" ]; then
+    composer config -g repo.packagist composer $COMPOSER_REPO_PACKAGIST
+fi
+
+/usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
