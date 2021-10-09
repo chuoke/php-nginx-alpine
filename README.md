@@ -12,6 +12,11 @@ Here's an example for my own use. And I prefer to use docker-compose.
 COMPOSE_PROJECT_NAME=some-site
 
 APP_HOSTNAME=site.test
+
+APP_PATH=/var/www/site
+
+APP_ENV=local
+
 ```
 
 `docker-compose.yml` :
@@ -35,18 +40,19 @@ services:
         build:
             context: ./
         image: chuoke/php-nginx-alpine:8.0
-        container_name: ${COMPOSE_PROJECT_NAME}-php
+        container_name: ${COMPOSE_PROJECT_NAME}-app
         environment:
             - PGID=1000
             - PUID=1000
+            - APP_PATH=${APP_PATH}
+            - APP_ENV=${APP_ENV}
         volumes:
-            - ../:/var/www/site
-            # - /var/www/site/vendor # On Windows
+            - ../:${APP_PATH}
+            # - ${APP_PATH}/vendor # For performance on Windows
             - ./nginx/site.conf:/etc/nginx/sites-available/site.conf
             # - ./nginx/nginx-octane.conf:/etc/nginx/sites-available/site.conf
             - ./nginx/logs:/var/log/nginx
             - ./supervisord/site.conf:/etc/supervisor/conf.d/supervisord.d/site.conf
-
         networks:
             - proxy
             - redis
@@ -60,7 +66,7 @@ services:
             - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-router.entrypoints=web"
 ```
 
-These `./nginx/site.conf` and `./supervisord/site.conf` two files can be found in the sample configuration of the project.
+These `./nginx/site.conf` and `./supervisord/site.conf` two files can be found in the sample `config` of the project.
 
 ---
 
