@@ -1,10 +1,10 @@
-FROM alpine:3.13
+FROM alpine:3.15
 
 LABEL Maintainer="chuoke"
 
 # mirrors.aliyun.com
 # mirrors.tuna.tsinghua.edu.cn
-ARG ALPINE_APK_REPO=mirrors.aliyun.com
+ARG ALPINE_APK_REPO=mirrors.tuna.tsinghua.edu.cn
 ENV ALPINE_APK_REPO=${ALPINE_APK_REPO}
 
 RUN if [ ${ALPINE_APK_REPO} ]; then \
@@ -14,10 +14,10 @@ RUN if [ ${ALPINE_APK_REPO} ]; then \
     && apk upgrade \
     && apk add --no-cache openssl bash curl ca-certificates shadow
 
-# 修改时区
-RUN apk add -U tzdata; \
-    cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime; \
-    apk del tzdata
+# # 修改时区
+# RUN apk add -U tzdata; \
+#     cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime; \
+#     apk del tzdata
 
 RUN apk update && \
     apk add --no-cache \

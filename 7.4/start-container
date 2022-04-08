@@ -14,10 +14,12 @@ if [ ! -z "$COMPOSER_REPO_PACKAGIST" ]; then
     composer config -g repo.packagist composer $COMPOSER_REPO_PACKAGIST
 fi
 
-if [ -n "$APP_PATH" ] && [ -a "${APP_PATH}/composer.json" ]; then
-    cd "$APP_PATH"
+is_composer_install="${COMPOSER_INSTALL:-true}"
 
-    if [ -n "$APP_ENV" ] && ([ "$APP_ENV" = "prod" ] || [ "$APP_ENV" = "production" ]); then
+if [ -n "$APP_CODE_PATH" ] && [ -a "${APP_CODE_PATH}/composer.json" ] && [ "$is_composer_install" = true ]; then
+    cd "$APP_CODE_PATH"
+
+    if [ -n "$APP_RUN_ENV" ] && ([ "$APP_RUN_ENV" = "prod" ] || [ "$APP_RUN_ENV" = "production" ]); then
         composer install --optimize-autoloader --no-dev
     else
         composer install
