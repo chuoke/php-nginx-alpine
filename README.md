@@ -39,7 +39,7 @@ networks:
 
 services:
   php:
-    image: chuoke/php-nginx-alpine:8.0
+    image: chuoke/php-nginx-alpine:8.1
     container_name: ${COMPOSE_PROJECT_NAME}
     working_dir: ${APP_CODE_PATH}
     environment:
@@ -79,11 +79,11 @@ Download this project to local and run command following:
 docker build path -f Dockerfile -t [name]:[tag]
 
 # example：
-docker build ./8.0 -f ./8.0/Dockerfile -t php-nginx-alpine:8.0
+docker build ./8.1 -f ./8.1/Dockerfile -t php-nginx-alpine:8.1
 
 # Push to Docker Hub
-docker tag php-nginx-alpine:8.0 your-name/php-nginx-alpine:8.0
-docker push your-name/php-nginx-alpine:8.0
+docker tag php-nginx-alpine:8.1 your-name/php-nginx-alpine:8.1
+docker push your-name/php-nginx-alpine:8.1
 ```
 
 ## Export/Import image for uploading to server
