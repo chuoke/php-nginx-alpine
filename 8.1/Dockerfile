@@ -17,7 +17,7 @@ RUN if [ ${ALPINE_APK_REPO} ]; then \
 RUN apk update \
     && apk upgrade \
     && apk add --no-cache openssl bash curl ca-certificates shadow \
-    nodejs py3-setuptools
+    nodejs py3-setuptools py3-pip
 
 ## Install about PHP
 
@@ -104,7 +104,8 @@ RUN apk --no-cache add nginx && \
 COPY nginx.conf /etc/nginx/nginx.conf
 
 # Install supervisor
-RUN apk --no-cache add supervisor
+# RUN apk --no-cache add supervisor
+RUN pip install supervisor
 # Configure supervisord
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
