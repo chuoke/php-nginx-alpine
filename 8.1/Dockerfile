@@ -76,7 +76,7 @@ RUN apk update && \
 COPY php-fpm.conf /etc/php81/php-fpm.d/www.conf
 COPY php.ini /etc/php81/conf.d/custom.ini
 
-RUN ln -s /usr/bin/php81 /usr/bin/php
+# RUN ln -s /usr/bin/php81 /usr/bin/php
 
 # Install composer
 ENV COMPOSER_HOME /composer
