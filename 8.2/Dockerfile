@@ -87,7 +87,8 @@ RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" &&
     php -r "unlink('composer-setup.php');"
 
 # Config Composer packagist repo
-ARG COMPOSER_REPO_PACKAGIST=https://mirrors.aliyun.com/composer/
+# ARG COMPOSER_REPO_PACKAGIST=https://mirrors.aliyun.com/composer/
+ARG COMPOSER_REPO_PACKAGIST=https://mirrors.tencent.com/composer/
 ENV COMPOSER_REPO_PACKAGIST=${COMPOSER_REPO_PACKAGIST}
 RUN if [ ${COMPOSER_REPO_PACKAGIST} ]; then \
     composer config -g repo.packagist composer ${COMPOSER_REPO_PACKAGIST} \
