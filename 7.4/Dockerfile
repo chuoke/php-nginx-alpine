@@ -74,9 +74,8 @@ RUN apk update && \
 COPY php-fpm.conf /etc/php7/php-fpm.d/www.conf
 COPY php.ini /etc/php/conf.d/custom.ini
 
-RUN if [ ! -e "/usr/bin/php" ]; then \
-        ln -s /usr/bin/php7 /usr/bin/php; \
-    fi
+RUN rm -f /usr/bin/php && ln -s /usr/bin/php7 /usr/bin/php && \
+    ln -s /usr/sbin/php-fpm7 /usr/sbin/php-fpm
 
 # Install composer
 ENV COMPOSER_HOME /composer
@@ -87,7 +86,8 @@ RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" &&
     php -r "unlink('composer-setup.php');"
 
 # Config Composer packagist repo
-ARG COMPOSER_REPO_PACKAGIST=https://mirrors.aliyun.com/composer/
+# ARG COMPOSER_REPO_PACKAGIST=https://mirrors.aliyun.com/composer/
+ARG COMPOSER_REPO_PACKAGIST=https://mirrors.tencent.com/composer/
 ENV COMPOSER_REPO_PACKAGIST=${COMPOSER_REPO_PACKAGIST}
 RUN if [ ${COMPOSER_REPO_PACKAGIST} ]; then \
     composer config -g repo.packagist composer ${COMPOSER_REPO_PACKAGIST} \
@@ -101,15 +101,15 @@ RUN apk --no-cache add nginx && \
 
 # Configure nginx
 COPY nginx.conf /etc/nginx/nginx.conf
+COPY nginx-server-temps /etc/nginx/server-temps
 
 # Install supervisor
 RUN apk --no-cache add supervisor
-
 # Configure supervisord
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Clean
-RUN rm /var/cache/apk/*
+RUN rm -rf /var/cache/apk/*
 
 # ensure www-data user exists
 RUN set -x ; \

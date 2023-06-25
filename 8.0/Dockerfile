@@ -1,4 +1,4 @@
-FROM alpine:edge
+FROM alpine:3.16
 
 LABEL Maintainer="chuoke"
 
@@ -6,6 +6,9 @@ LABEL Maintainer="chuoke"
 # mirrors.tuna.tsinghua.edu.cn
 ARG ALPINE_APK_REPO=mirrors.aliyun.com
 ENV ALPINE_APK_REPO=${ALPINE_APK_REPO}
+
+# RUN apk upgrade
+# RUN apk add -X https://dl-cdn.alpinelinux.org/alpine/v3.16/main -u alpine-keys
 
 # swoole 在 testing 库
 RUN echo "https://dl-cdn.alpinelinux.org/alpine/edge/testing/" >> /etc/apk/repositories
@@ -17,7 +20,10 @@ RUN if [ ${ALPINE_APK_REPO} ]; then \
 RUN apk update \
     && apk upgrade \
     && apk add --no-cache openssl bash curl ca-certificates shadow \
-    nodejs py3-setuptools
+    nodejs
+
+# Need for openssl, intl
+RUN apk add libcrypto1.1 libssl1.1 icu-libs
 
 ## Install about PHP
 
@@ -76,7 +82,8 @@ RUN apk update && \
 COPY php-fpm.conf /etc/php8/php-fpm.d/www.conf
 COPY php.ini /etc/php8/conf.d/custom.ini
 
-RUN ln -s /usr/bin/php8 /usr/bin/php
+RUN rm -f /usr/bin/php && ln -s /usr/bin/php8 /usr/bin/php && \
+    ln -s /usr/sbin/php-fpm8 /usr/sbin/php-fpm
 
 # Install composer
 ENV COMPOSER_HOME /composer
@@ -87,7 +94,8 @@ RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" &&
     php -r "unlink('composer-setup.php');"
 
 # Config Composer packagist repo
-ARG COMPOSER_REPO_PACKAGIST=https://mirrors.aliyun.com/composer/
+# ARG COMPOSER_REPO_PACKAGIST=https://mirrors.aliyun.com/composer/
+ARG COMPOSER_REPO_PACKAGIST=https://mirrors.tencent.com/composer/
 ENV COMPOSER_REPO_PACKAGIST=${COMPOSER_REPO_PACKAGIST}
 RUN if [ ${COMPOSER_REPO_PACKAGIST} ]; then \
     composer config -g repo.packagist composer ${COMPOSER_REPO_PACKAGIST} \
@@ -102,14 +110,16 @@ RUN apk --no-cache add nginx && \
 
 # Configure nginx
 COPY nginx.conf /etc/nginx/nginx.conf
+COPY nginx-server-temps /etc/nginx/server-temps
 
 # Install supervisor
 RUN apk --no-cache add supervisor
+# RUN apk add py3-setuptools py3-pip && pip install supervisor
 # Configure supervisord
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Clean
-RUN rm /var/cache/apk/*
+RUN rm -rf /var/cache/apk/*
 
 # ensure www-data user exists
 RUN set -x ; \

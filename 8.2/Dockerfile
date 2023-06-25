@@ -1,4 +1,4 @@
-FROM alpine:edge
+FROM alpine:3.18
 
 LABEL Maintainer="chuoke"
 
@@ -7,6 +7,9 @@ LABEL Maintainer="chuoke"
 ARG ALPINE_APK_REPO=mirrors.aliyun.com
 ENV ALPINE_APK_REPO=${ALPINE_APK_REPO}
 
+# RUN apk upgrade
+# RUN apk add -X https://dl-cdn.alpinelinux.org/alpine/v3.16/main -u alpine-keys
+
 # swoole 在 testing 库
 RUN echo "https://dl-cdn.alpinelinux.org/alpine/edge/testing/" >> /etc/apk/repositories
 
@@ -14,15 +17,18 @@ RUN if [ ${ALPINE_APK_REPO} ]; then \
         sed -i "s/dl-cdn.alpinelinux.org/${ALPINE_APK_REPO}/g" /etc/apk/repositories; \
     fi
 
-RUN apk update \
-    && apk upgrade \
-    && apk add --no-cache openssl bash curl ca-certificates shadow \
-    nodejs py3-setuptools py3-pip
+# RUN apk update && \
+#     apk upgrade --available && \
+RUN apk add --no-cache openssl bash curl ca-certificates shadow \
+    nodejs
 
 ## Install about PHP
 
-RUN apk update && \
-    apk add --no-cache \
+## Many extensions are included in the base package,
+## but in order to ensure that the required extensions must exist,
+## all of them are mandatory installation
+
+RUN apk add --no-cache \
     php82 \
     php82-common \
     php82-fpm \
@@ -68,7 +74,7 @@ RUN apk update && \
     # pecl extensions
     php82-pecl-apcu \
     php82-pecl-redis \
-    php8-pecl-imagick \
+    php82-pecl-imagick \
     # php82-pecl-xdebug \ Can't coexist with Swoole，see Swoole's doc
     php82-pecl-swoole
 
@@ -76,9 +82,11 @@ RUN apk update && \
 COPY php-fpm.conf /etc/php82/php-fpm.d/www.conf
 COPY php.ini /etc/php82/conf.d/custom.ini
 
-RUN ln -s /usr/bin/php82 /usr/bin/php
+RUN rm -f /usr/bin/php && ln -s /usr/bin/php82 /usr/bin/php && \
+    ln -s /usr/sbin/php-fpm82 /usr/sbin/php-fpm
 
 # Install composer
+# RUN apk add composer # It depent php version is 8.1
 ENV COMPOSER_HOME /composer
 ENV PATH ./vendor/bin:/composer/vendor/bin:$PATH
 ENV COMPOSER_ALLOW_SUPERUSER 1
@@ -103,15 +111,16 @@ RUN apk --no-cache add nginx && \
 
 # Configure nginx
 COPY nginx.conf /etc/nginx/nginx.conf
+COPY nginx-server-temps /etc/nginx/server-temps
 
 # Install supervisor
-# RUN apk --no-cache add supervisor
-RUN pip install supervisor
+RUN apk --no-cache add supervisor
+# RUN apk add py3-setuptools py3-pip && pip install supervisor
 # Configure supervisord
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Clean
-RUN rm /var/cache/apk/*
+RUN rm -rf /var/cache/apk/*
 
 # ensure www-data user exists
 RUN set -x ; \

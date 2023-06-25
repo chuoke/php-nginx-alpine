@@ -47,13 +47,15 @@ services:
       - PUID=1000
       - APP_CODE_PATH=${APP_CODE_PATH}
       - APP_RUN_ENV=${APP_RUN_ENV}
+      - NGINX_SERVER_TYPE=laravel # laravel(default)\laravel-octane\thinkphp
     volumes:
       - ../:${APP_CODE_PATH}
-      # - ${APP_CODE_PATH}/vendor # For performance on Windows
-      - ./nginx/site.conf:/etc/nginx/sites-available/site.conf
-      # - ./nginx/nginx-octane.conf:/etc/nginx/sites-available/site.conf
-      - ./nginx/logs:/var/log/nginx
       - ./supervisord/site.conf:/etc/supervisor/conf.d/supervisord.d/site.conf
+      # The following content is not required if it does not need to be customized
+      # - ${APP_CODE_PATH}/vendor # For performance on Windows
+      # - ./nginx/site.conf:/etc/nginx/sites-available/site.conf # custom server config
+      # - ./nginx/nginx-octane.conf:/etc/nginx/sites-available/site.conf
+      # - ./nginx/logs:/var/log/nginx
     networks:
       - proxy
       - redis
@@ -67,7 +69,7 @@ services:
       - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-router.entrypoints=web"
 ```
 
-These example files like `./nginx/site.conf` and `./supervisord/site.conf` can be found in the sample `config` of the project.
+These example files like `./nginx/site.conf` and `./supervisord/site.conf` can be found in the project.
 
 ---
 

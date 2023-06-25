@@ -67,16 +67,18 @@ RUN apk --no-cache add \
 COPY php-fpm.conf /etc/php7/php-fpm.d/www.conf
 COPY php.ini /etc/php7/conf.d/custom.ini
 
+RUN ln -s /usr/sbin/php-fpm7 /usr/sbin/php-fpm
+
 # Install about nginx
 RUN apk --no-cache add nginx && \
     rm /etc/nginx/conf.d/default.conf
 
 # Configure nginx
 COPY nginx.conf /etc/nginx/nginx.conf
+COPY nginx-server-temps /etc/nginx/server-temps
 
 # Install supervisor
 RUN apk --no-cache add supervisor
-
 # Configure supervisord
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
@@ -89,7 +91,8 @@ RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" &&
     php -r "unlink('composer-setup.php');"
 
 # Config Composer packagist repo
-ARG COMPOSER_REPO_PACKAGIST=https://mirrors.aliyun.com/composer/
+# ARG COMPOSER_REPO_PACKAGIST=https://mirrors.aliyun.com/composer/
+ARG COMPOSER_REPO_PACKAGIST=https://mirrors.tencent.com/composer/
 ENV COMPOSER_REPO_PACKAGIST=${COMPOSER_REPO_PACKAGIST}
 RUN if [ ${COMPOSER_REPO_PACKAGIST} ]; then \
     composer config -g repo.packagist composer ${COMPOSER_REPO_PACKAGIST} \

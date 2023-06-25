@@ -1,0 +1,22 @@
+version: "3.8"
+
+services:
+  app:
+    image: php-nginx-alpine:8.0
+    container_name: php-nginx-alpine-80-test
+    environment:
+      - APP_CODE_PATH=/var/www/site
+    working_dir: /var/www/site
+    entrypoint: /bin/bash -c "composer create-project laravel/laravel:^9.0 . --prefer-dist --no-progress && start-container"
+    volumes:
+      # - ../:/var/www/site
+      # - /var/www/site/vendor # For performance on Windows
+      # - ./nginx/site.conf:/etc/nginx/sites-available/site.conf
+      # - ./nginx/octane.conf:/etc/nginx/sites-available/site.conf
+      # - ./nginx/logs:/var/log/nginx
+      - ./supervisord.conf:/etc/supervisor/conf.d/supervisord.d/site.conf
+    expose:
+      - "80"
+      - "443"
+    ports:
+      - "8080:80"
