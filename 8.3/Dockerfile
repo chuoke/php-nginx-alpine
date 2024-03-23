@@ -74,8 +74,9 @@ RUN apk add --no-cache \
     # pecl extensions
     php83-pecl-apcu \
     php83-pecl-redis \
-    # php83-pecl-imagick \ 还没有包
-    # php83-pecl-xdebug \ Can't coexist with Swoole，see Swoole's doc
+    php83-pecl-mongodb \
+    php83-pecl-imagick \
+    php83-pecl-xdebug \
     php83-pecl-swoole
 
 # Configure PHP-FPM

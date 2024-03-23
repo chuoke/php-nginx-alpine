@@ -1,4 +1,4 @@
-FROM alpine:3.18
+FROM alpine:3.19
 
 LABEL Maintainer="chuoke"
 
@@ -74,8 +74,9 @@ RUN apk add --no-cache \
     # pecl extensions
     php82-pecl-apcu \
     php82-pecl-redis \
+    php82-pecl-mongodb \
     php82-pecl-imagick \
-    # php82-pecl-xdebug \ Can't coexist with Swoole，see Swoole's doc
+    php82-pecl-xdebug \
     php82-pecl-swoole
 
 # Configure PHP-FPM

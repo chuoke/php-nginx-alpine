@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  php:
+    image: chuoke/php-nginx-alpine:8.0
+    container_name: ${COMPOSE_PROJECT_NAME}-php
+    environment:
+      - PGID=1000
+      - PUID=1000
+    volumes:
+      - ../:/var/www/site
+      # - /var/www/site/vendor # For performance on Windows
+      - ./nginx/site.conf:/etc/nginx/sites-available/site.conf
+      # - ./nginx/octane.conf:/etc/nginx/sites-available/site.conf
+      - ./nginx/logs:/var/log/nginx
+      - ./supervisord/site.conf:/etc/supervisor/conf.d/supervisord.d/site.conf
+    expose:
+      - "80"
+      - "443"
