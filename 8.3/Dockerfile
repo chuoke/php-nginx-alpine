@@ -76,8 +76,8 @@ RUN apk add --no-cache \
     php83-pecl-redis \
     php83-pecl-mongodb \
     php83-pecl-imagick \
-    php83-pecl-xdebug \
-    php83-pecl-swoole
+    php83-pecl-xdebug
+    # php83-pecl-swoole
 
 # Configure PHP-FPM
 COPY php-fpm.conf /etc/php83/php-fpm.d/www.conf
