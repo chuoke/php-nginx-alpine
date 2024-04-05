@@ -84,7 +84,7 @@ COPY php-fpm.conf /etc/php83/php-fpm.d/www.conf
 COPY php.ini /etc/php83/conf.d/custom.ini
 
 RUN rm -f /usr/bin/php && ln -s /usr/bin/php83 /usr/bin/php && \
-    ln -s /usr/sbin/php-fpm82 /usr/sbin/php-fpm
+    ln -s /usr/sbin/php-fpm83 /usr/sbin/php-fpm
 
 # Install composer
 # RUN apk add composer # It depent php version is 8.1
