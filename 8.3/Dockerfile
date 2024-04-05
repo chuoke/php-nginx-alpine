@@ -119,6 +119,7 @@ RUN apk --no-cache add supervisor
 # RUN apk add py3-setuptools py3-pip && pip install supervisor
 # Configure supervisord
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY supervisord-site.conf /etc/supervisor/conf.d/supervisord.d/site.conf
 
 # Clean
 RUN rm -rf /var/cache/apk/*

@@ -81,6 +81,7 @@ COPY nginx-server-temps /etc/nginx/server-temps
 RUN apk --no-cache add supervisor
 # Configure supervisord
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY supervisord-site.conf /etc/supervisor/conf.d/supervisord.d/site.conf
 
 # Install composer
 ENV COMPOSER_HOME /composer
