@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+
+if [ ! -z "$PGID" ]; then
+    groupmod -o -g $PGID www-data
+    usermod -o -u $PUID -g www-data www-data
+fi
+
+if [ ! -z "$PGID" ]; then
+    groupmod -o -g $PGID nginx
+    usermod -o -u $PUID -g nginx nginx
+fi
+
+# Change ALPINE APK packagist repo
+if [ -z "${ALPINE_APK_REPO}" ]; then
+    sed -i "s/dl-cdn.alpinelinux.org/${ALPINE_APK_REPO}/g" /etc/apk/repositories;
+fi
+
+# Change Composer packagist repo
+if [ -z "${COMPOSER_REPO_PACKAGIST}" ]; then
+    composer config -g repo.packagist composer ${COMPOSER_REPO_PACKAGIST}
+fi
+
+# set nginx server config
+
+if [ -z "${NGINX_SERVER_ROOT}" ]; then
+    app_code_path="${APP_CODE_PATH:-/var/www}"
+    export NGINX_SERVER_ROOT="$app_code_path/public"
+fi
+
+NGINX_SERVER_TYPE_VALUE="${NGINX_SERVER_TYPE:-laravel}"
+
+NGINX_SERVER_CONF_PATH="/etc/nginx/sites-available";
+
+if [ ! -d "${NGINX_SERVER_CONF_PATH}" ]; then
+    mkdir -p $NGINX_SERVER_CONF_PATH
+fi
+
+if [ -z "$(ls ${NGINX_SERVER_CONF_PATH})" ]; then
+    # envsubst '${NGINX_SERVER_ROOT}' < /etc/nginx/server-temps/$NGINX_SERVER_TYPE_VALUE.conf > $NGINX_SERVER_CONF_PATH/$NGINX_SERVER_TYPE_VALUE.conf
+    sed "s|\${NGINX_SERVER_ROOT}|${NGINX_SERVER_ROOT}|" /etc/nginx/server-temps/$NGINX_SERVER_TYPE_VALUE.conf > $NGINX_SERVER_CONF_PATH/$NGINX_SERVER_TYPE_VALUE.conf
+fi
+
+
+if [ ! -z "$COMPOSER_REPO_PACKAGIST" ]; then
+    composer config -g repo.packagist composer $COMPOSER_REPO_PACKAGIST
+fi
+
+is_composer_install="${COMPOSER_INSTALL:-true}"
+
+if [ -n "$APP_CODE_PATH" ] && [ -a "${APP_CODE_PATH}/composer.json" ] && [ "$is_composer_install" = true ]; then
+    cd "$APP_CODE_PATH"
+
+    if [ -n "$APP_RUN_ENV" ] && ([ "$APP_RUN_ENV" = "prod" ] || [ "$APP_RUN_ENV" = "production" ]); then
+        composer install --optimize-autoloader --no-dev
+    else
+        composer install
+    fi
+fi
+
+/usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
