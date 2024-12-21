@@ -1,25 +1,26 @@
-FROM alpine:3.19
+FROM alpine:3.20
 
 LABEL Maintainer="chuoke"
 
+ARG ALPINE_VERSION=3.20
+
 # mirrors.aliyun.com
 # mirrors.tuna.tsinghua.edu.cn
-ARG ALPINE_APK_REPO=mirrors.aliyun.com
-ENV ALPINE_APK_REPO=${ALPINE_APK_REPO}
+ARG APPEND_ALPINE_APK_REPO=mirrors.aliyun.com
+ENV APPEND_ALPINE_APK_REPO=${APPEND_ALPINE_APK_REPO}
 
-# RUN apk upgrade
-# RUN apk add -X https://dl-cdn.alpinelinux.org/alpine/v3.16/main -u alpine-keys
-
-# swoole 在 testing 库
-RUN echo "https://dl-cdn.alpinelinux.org/alpine/edge/testing/" >> /etc/apk/repositories
-
-RUN if [ ${ALPINE_APK_REPO} ]; then \
-        sed -i "s/dl-cdn.alpinelinux.org/${ALPINE_APK_REPO}/g" /etc/apk/repositories; \
+# RUN if [ ${ALPINE_APK_REPO} ]; then \
+#         sed -i "s/dl-cdn.alpinelinux.org/${ALPINE_APK_REPO}/g" /etc/apk/repositories; \
+#     fi
+RUN if [ ${APPEND_ALPINE_APK_REPO} ]; then \
+        echo "https://${APPEND_ALPINE_APK_REPO}/alpine/v${ALPINE_VERSION}/main" >> /etc/apk/repositories; \
+        echo "https://${APPEND_ALPINE_APK_REPO}/alpine/v${ALPINE_VERSION}/community" >> /etc/apk/repositories; \
     fi
 
 # RUN apk update && \
 #     apk upgrade --available && \
-RUN apk add --no-cache openssl bash curl ca-certificates shadow \
+RUN apk update && apk add --no-cache \
+    openssl bash curl ca-certificates shadow \
     nodejs
 
 ## Install about PHP
@@ -34,6 +35,7 @@ RUN apk add --no-cache \
     php83-fpm \
     # Laravel Requirements
     php83-bcmath \
+    php83-bz2 \
     php83-ctype \
     php83-fileinfo \
     php83-json \
@@ -76,8 +78,8 @@ RUN apk add --no-cache \
     php83-pecl-redis \
     php83-pecl-mongodb \
     php83-pecl-imagick \
-    php83-pecl-xdebug
-    # php83-pecl-swoole
+    php83-pecl-xdebug \
+    php83-pecl-swoole
 
 # Configure PHP-FPM
 COPY php-fpm.conf /etc/php83/php-fpm.d/www.conf
@@ -86,22 +88,38 @@ COPY php.ini /etc/php83/conf.d/custom.ini
 RUN rm -f /usr/bin/php && ln -s /usr/bin/php83 /usr/bin/php && \
     ln -s /usr/sbin/php-fpm83 /usr/sbin/php-fpm
 
+# ----------------------------------------------------------------
 # Install composer
-# RUN apk add composer # It depent php version is 8.1
-ENV COMPOSER_HOME /composer
-ENV PATH ./vendor/bin:/composer/vendor/bin:$PATH
-ENV COMPOSER_ALLOW_SUPERUSER 1
-RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" && \
-    php composer-setup.php --install-dir=/usr/local/bin --filename=composer && \
-    php -r "unlink('composer-setup.php');"
+
+# Install composer from apk (size bigger than following 2 ways)
+# RUN apk add composer
+
+# Install composer manually
+# ENV COMPOSER_HOME=/composer
+# ENV PATH=./vendor/bin:/composer/vendor/bin:$PATH
+# ENV COMPOSER_ALLOW_SUPERUSER=1
+# RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" && \
+#     php composer-setup.php --install-dir=/usr/local/bin --filename=composer && \
+#     php -r "unlink('composer-setup.php');"
+# Install composer from composer docker image
+COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
 
 # Config Composer packagist repo
 # ARG COMPOSER_REPO_PACKAGIST=https://mirrors.aliyun.com/composer/
-ARG COMPOSER_REPO_PACKAGIST=https://mirrors.tencent.com/composer/
-ENV COMPOSER_REPO_PACKAGIST=${COMPOSER_REPO_PACKAGIST}
-RUN if [ ${COMPOSER_REPO_PACKAGIST} ]; then \
-    composer config -g repo.packagist composer ${COMPOSER_REPO_PACKAGIST} \
-;fi
+# ARG COMPOSER_REPO_PACKAGIST=https://mirrors.tencent.com/composer/
+# ENV COMPOSER_REPO_PACKAGIST=${COMPOSER_REPO_PACKAGIST}
+# RUN if [ ${COMPOSER_REPO_PACKAGIST} ]; then \
+#     composer config -g repo.packagist composer ${COMPOSER_REPO_PACKAGIST} \
+# ;fi
+
+
+# install roadrunner
+# COPY --from=ghcr.io/roadrunner-server/roadrunner:latest /usr/bin/rr /usr/local/bin/rr
+
+
+# # install frankenphp
+# RUN apk add jq
+# RUN wget -O/usr/local/bin/frankenphp $(wget -O- https://api.github.com/repos/dunglas/frankenphp/releases/latest | jq '.assets[] | select(.name=="frankenphp-linux-x86_64") | .browser_download_url' -r) && chmod +x /usr/local/bin/frankenphp
 
 
 # Install about nginx
@@ -130,9 +148,9 @@ RUN set -x ; \
   adduser -u 82 -D -S -G www-data www-data && exit 0 ; exit 1
 
 ARG PUID=1000
-ENV PUID ${PUID}
+ENV PUID=${PUID}
 ARG PGID=1000
-ENV PGID ${PGID}
+ENV PGID=${PGID}
 
 RUN groupmod -o -g ${PGID} www-data && \
     usermod -o -u ${PUID} -g www-data www-data
@@ -152,7 +170,5 @@ WORKDIR /var/www/
 
 # Expose the port nginx is reachable on
 EXPOSE 80
-
-# CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
 
 ENTRYPOINT ["start-container"]

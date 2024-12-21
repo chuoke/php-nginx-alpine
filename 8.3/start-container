@@ -10,6 +10,16 @@ if [ ! -z "$PGID" ]; then
     usermod -o -u $PUID -g nginx nginx
 fi
 
+# Change ALPINE APK packagist repo
+if [ -z "${ALPINE_APK_REPO}" ]; then
+    sed -i "s/dl-cdn.alpinelinux.org/${ALPINE_APK_REPO}/g" /etc/apk/repositories;
+fi
+
+# Change Composer packagist repo
+if [ -z "${COMPOSER_REPO_PACKAGIST}" ]; then
+    composer config -g repo.packagist composer ${COMPOSER_REPO_PACKAGIST}
+fi
+
 # set nginx server config
 
 if [ -z "${NGINX_SERVER_ROOT}" ]; then
