@@ -31,8 +31,8 @@ if [ -z "$(ls ${NGINX_SERVER_CONF_PATH})" ]; then
 fi
 
 
-if [ ! -z "$COMPOSER_REPO_PACKAGIST" ]; then
-    composer config -g repo.packagist composer $COMPOSER_REPO_PACKAGIST
+if [ -n "${COMPOSER_REPO_PACKAGIST}" ]; then
+    composer config -g repo.packagist composer "${COMPOSER_REPO_PACKAGIST}"
 fi
 
 is_composer_install="${COMPOSER_INSTALL:-true}"

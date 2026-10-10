@@ -15,13 +15,16 @@ ENV APPEND_ALPINE_APK_REPO=${APPEND_ALPINE_APK_REPO}
 RUN if [ ${APPEND_ALPINE_APK_REPO} ]; then \
         echo "https://${APPEND_ALPINE_APK_REPO}/alpine/v${ALPINE_VERSION}/main" >> /etc/apk/repositories; \
         echo "https://${APPEND_ALPINE_APK_REPO}/alpine/v${ALPINE_VERSION}/community" >> /etc/apk/repositories; \
-    fi
-
-# RUN apk update && \
-#     apk upgrade --available && \
-RUN apk update && apk add --no-cache \
-    openssl bash curl ca-certificates shadow \
-    nodejs
+    fi \
+    && apk update && apk add --no-cache \
+    openssl \
+    bash \
+    curl \
+    ca-certificates \
+    shadow \
+    bind-tools \
+    # nodejs \
+    supervisor
 
 ## Install about PHP
 
@@ -29,7 +32,7 @@ RUN apk update && apk add --no-cache \
 ## but in order to ensure that the required extensions must exist,
 ## all of them are mandatory installation
 
-RUN apk add --no-cache \
+RUN apk add \
     php83 \
     php83-common \
     php83-fpm \
@@ -123,7 +126,7 @@ COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
 
 
 # Install about nginx
-RUN apk --no-cache add nginx && \
+RUN apk add nginx && \
     if [ -f '/etc/nginx/conf.d/default.conf' ]; then \
         rm /etc/nginx/conf.d/default.conf \
     ;fi
@@ -132,15 +135,12 @@ RUN apk --no-cache add nginx && \
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY nginx-server-temps /etc/nginx/server-temps
 
-# Install supervisor
-RUN apk --no-cache add supervisor
-# RUN apk add py3-setuptools py3-pip && pip install supervisor
 # Configure supervisord
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY supervisord-site.conf /etc/supervisor/conf.d/supervisord.d/site.conf
 
 # Clean
-RUN rm -rf /var/cache/apk/*
+RUN rm -rf /var/cache/apk/* /tmp/* /var/tmp/*
 
 # ensure www-data user exists
 RUN set -x ; \
@@ -153,17 +153,16 @@ ARG PGID=1000
 ENV PGID=${PGID}
 
 RUN groupmod -o -g ${PGID} www-data && \
-    usermod -o -u ${PUID} -g www-data www-data
-
-RUN groupmod -o -g ${PGID} nginx && \
+    usermod -o -u ${PUID} -g www-data www-data \
+    && groupmod -o -g ${PGID} nginx && \
     usermod -o -u ${PUID} -g nginx nginx
 
 COPY start-container /usr/local/bin/start-container
 RUN chmod +x /usr/local/bin/start-container
 
 # Setup document root
-RUN mkdir -p /var/www/
-RUN chown -R www-data:www-data /var/www/
+RUN mkdir -p /var/www/ \
+    && chown -R www-data:www-data /var/www/
 
 # Add application
 WORKDIR /var/www/

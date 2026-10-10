@@ -1,11 +1,15 @@
-FROM alpine:3.21
+FROM alpine:3.24
 
 ARG ALPINE_VERSION=3.21
 
 LABEL Maintainer="chuoke"
 
-# mirrors.aliyun.com
-# mirrors.tuna.tsinghua.edu.cn
+ARG PUID=1000
+ENV PUID=${PUID}
+ARG PGID=1000
+ENV PGID=${PGID}
+
+# ARG APPEND_ALPINE_APK_REPO=mirrors.tuna.tsinghua.edu.cn
 ARG APPEND_ALPINE_APK_REPO=mirrors.aliyun.com
 ENV APPEND_ALPINE_APK_REPO=${APPEND_ALPINE_APK_REPO}
 
@@ -13,24 +17,24 @@ ENV APPEND_ALPINE_APK_REPO=${APPEND_ALPINE_APK_REPO}
 #         sed -i "s/dl-cdn.alpinelinux.org/${ALPINE_APK_REPO}/g" /etc/apk/repositories; \
 #     fi
 
-RUN if [ ${APPEND_ALPINE_APK_REPO} ]; then \
+RUN if [ -n "${APPEND_ALPINE_APK_REPO}" ]; then \
         echo "https://${APPEND_ALPINE_APK_REPO}/alpine/v${ALPINE_VERSION}/main" >> /etc/apk/repositories; \
         echo "https://${APPEND_ALPINE_APK_REPO}/alpine/v${ALPINE_VERSION}/community" >> /etc/apk/repositories; \
-    fi
-
-# RUN apk update && \
-#     apk upgrade --available && \
-RUN apk update && apk add --no-cache \
-    openssl bash curl ca-certificates shadow \
-    nodejs
-
-## Install about PHP
-
-## Many extensions are included in the base package,
-## but in order to ensure that the required extensions must exist,
-## all of them are mandatory installation
-
-RUN apk add --no-cache \
+    fi && \
+    # Install essential packages
+    apk update && apk add --no-cache \
+    openssl \
+    bash \
+    curl \
+    ca-certificates \
+    shadow \
+    bind-tools \
+    # nodejs \
+    supervisor \
+    # Install about PHP
+    # Many extensions are included in the base package,
+    # but in order to ensure that the required extensions must exist,
+    # all of them are mandatory installation
     php84 \
     php84-common \
     php84-fpm \
@@ -49,7 +53,6 @@ RUN apk add --no-cache \
     php84-curl \
     php84-dom \
     php84-gd \
-    php84-opcache \
     php84-xmlwriter \
     php84-simplexml \
     php84-posix \
@@ -79,15 +82,30 @@ RUN apk add --no-cache \
     php84-pecl-redis \
     php84-pecl-mongodb \
     php84-pecl-imagick \
-    php84-pecl-xdebug \
-    php84-pecl-swoole
+    # php84-pecl-xdebug \
+    # Include swoole
+    php84-pecl-swoole \
+    # Install about nginx
+    nginx && \
+    if [ -f '/etc/nginx/conf.d/default.conf' ]; then \
+        rm /etc/nginx/conf.d/default.conf; \
+    fi \
+    # Clean up package cache to reduce image size
+    && rm -rf /var/cache/apk/* \
+    # Ensure php executable in any dir
+    && rm -f /usr/bin/php \
+    && ln -s /usr/bin/php84 /usr/bin/php \
+    && rm -f /usr/sbin/php-fpm \
+    && ln -s /usr/sbin/php-fpm84 /usr/sbin/php-fpm
 
-# Configure PHP-FPM
-COPY php-fpm.conf /etc/php84/php-fpm.d/www.conf
-COPY php.ini /etc/php84/conf.d/custom.ini
+# Ensure www-data user exists
+RUN if ! getent group www-data > /dev/null; then addgroup -g 82 -S www-data; fi && \
+    if ! getent passwd www-data > /dev/null; then adduser -u 82 -D -S -G www-data www-data; fi \
+    && groupmod -o -g ${PGID} www-data \
+    && usermod -o -u ${PUID} -g www-data www-data \
+    && groupmod -o -g ${PGID} nginx \
+    && usermod -o -u ${PUID} -g nginx nginx
 
-RUN rm -f /usr/bin/php && ln -s /usr/bin/php84 /usr/bin/php && \
-    ln -s /usr/sbin/php-fpm84 /usr/sbin/php-fpm
 
 # ----------------------------------------------------------------
 # Install composer
@@ -103,6 +121,7 @@ RUN rm -f /usr/bin/php && ln -s /usr/bin/php84 /usr/bin/php && \
 #     php composer-setup.php --install-dir=/usr/local/bin --filename=composer && \
 #     php -r "unlink('composer-setup.php');"
 # Install composer from composer docker image
+ENV COMPOSER_ALLOW_SUPERUSER=1
 COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
 
 # Config Composer packagist repo
@@ -113,58 +132,37 @@ COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
 #     composer config -g repo.packagist composer ${COMPOSER_REPO_PACKAGIST} \
 # ;fi
 
+# ----------------------------------------------------------------
 
 # install roadrunner
 # COPY --from=ghcr.io/roadrunner-server/roadrunner:latest /usr/bin/rr /usr/local/bin/rr
 
 
 # # install frankenphp
-# RUN apk add jq
-# RUN wget -O/usr/local/bin/frankenphp $(wget -O- https://api.github.com/repos/dunglas/frankenphp/releases/latest | jq '.assets[] | select(.name=="frankenphp-linux-x86_64") | .browser_download_url' -r) && chmod +x /usr/local/bin/frankenphp
+# RUN apk add jq && \
+#     wget -O/usr/local/bin/frankenphp $(wget -O- https://api.github.com/repos/dunglas/frankenphp/releases/latest | jq '.assets[] | select(.name=="frankenphp-linux-x86_64") | .browser_download_url' -r) && chmod +x /usr/local/bin/frankenphp
 
 
-# Install about nginx
-RUN apk --no-cache add nginx && \
-    if [ -f '/etc/nginx/conf.d/default.conf' ]; then \
-        rm /etc/nginx/conf.d/default.conf \
-    ;fi
+# Configure PHP-FPM
+COPY php-fpm.conf /etc/php84/php-fpm.d/www.conf
+COPY php.ini /etc/php84/conf.d/custom.ini
 
 # Configure nginx
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY nginx-server-temps /etc/nginx/server-temps
 
-# Install supervisor
-RUN apk --no-cache add supervisor
-# RUN apk add py3-setuptools py3-pip && pip install supervisor
 # Configure supervisord
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY supervisord-site.conf /etc/supervisor/conf.d/supervisord.d/site.conf
 
-# Clean
-RUN rm -rf /var/cache/apk/*
-
-# ensure www-data user exists
-RUN set -x ; \
-  addgroup -g 82 -S www-data ; \
-  adduser -u 82 -D -S -G www-data www-data && exit 0 ; exit 1
-
-ARG PUID=1000
-ENV PUID=${PUID}
-ARG PGID=1000
-ENV PGID=${PGID}
-
-RUN groupmod -o -g ${PGID} www-data && \
-    usermod -o -u ${PUID} -g www-data www-data
-
-RUN groupmod -o -g ${PGID} nginx && \
-    usermod -o -u ${PUID} -g nginx nginx
-
+# Starter kit
 COPY start-container /usr/local/bin/start-container
-RUN chmod +x /usr/local/bin/start-container
 
-# Setup document root
-RUN mkdir -p /var/www/
-RUN chown -R www-data:www-data /var/www/
+# Setup starter and application directory
+RUN chmod +x /usr/local/bin/start-container \
+    && mkdir -p /var/www/ \
+    && mkdir -p /etc/nginx/sites-available /var/log/supervisor /run \
+    && chown -R www-data:www-data /var/www/
 
 # Add application
 WORKDIR /var/www/
